@@ -1,0 +1,11 @@
+{
+  "files": {
+    "tasks": {
+      "title": "Experimento 01",
+      "description": "Linha de base: IPCC + NASEM",
+      "path": "experimentos/exp01/tarefas.json",
+      "type": "json",
+      "properties": "tasks_properties"
+    }
+  }
+}

@@ -1,0 +1,2 @@
+id,cenario,metano_lactantes,metano_secas,padrao_nutricional,semente,anos_simulados,commit_rufas,python,filtro_saida,inicio,fim,duracao_total_s,duracao_simulacao_s,status,erros,tipos_de_aviso,tamanho_saida_mb,pasta_saida,observacoes
+exp01_base_s1,linha_de_base,IPCC,IPCC,NASEM,1,7 (2013-2019),38dacd79b,3.13.15,csv_all_variables,2026-10-22 20:38:49,2026-10-22 20:47:32,523,79,ok,0,17,874,output/exp01/base_s1,"Primeira rodada; filtro com todas as variaveis (913 MB de CSV, maior parte do tempo foi gravacao)"

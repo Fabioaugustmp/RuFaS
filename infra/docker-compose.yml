@@ -1,0 +1,71 @@
+# Ferramentas de apoio ao TCC (RuFaS): grafo de código (GitNexus) e memória de agentes (ai-memory).
+# Uso:
+#   1) cp .env.example .env   (preencha os tokens)
+#   2) docker compose --profile index run --rm gitnexus-index   (indexa o RuFaS)
+#   3) docker compose up -d gitnexus-mcp gitnexus-web
+#   4) (opcional) docker compose --profile memory up -d ai-memory
+name: rufas-tools
+
+services:
+  # Indexação one-shot do repositório RuFaS (somente leitura no código-fonte).
+  gitnexus-index:
+    build:
+      context: ./gitnexus
+    image: rufas/gitnexus:1.6.12
+    profiles: ["index"]
+    command: ["analyze", "--skip-agents-md", "--skip-skills", "/src"]
+    # Leitura e escrita: o analyze grava a pasta .gitnexus/ na raiz do repositório.
+    # Adicione .gitnexus/ ao .gitignore do RuFaS para não versionar o índice.
+    volumes:
+      - ${RUFAS_REPO_PATH:-C:/Workspace/RuFaS}:/src
+      - gitnexus-home:/data
+    restart: "no"
+
+  # Servidor MCP por HTTP, usado pelo Claude Code (grafo de chamadas, callers/callees, impacto).
+  gitnexus-mcp:
+    image: rufas/gitnexus:1.6.12
+    command: ["mcp", "--http", "--host", "0.0.0.0", "--port", "3000"]
+    environment:
+      GITNEXUS_MCP_AUTH_TOKEN: ${GITNEXUS_MCP_AUTH_TOKEN:?defina GITNEXUS_MCP_AUTH_TOKEN no .env}
+    # O registro em /data aponta para /src/.gitnexus (gravado pelo gitnexus-index); sem este mount
+    # o servidor não encontra o índice e poda o registro na inicialização.
+    volumes:
+      - gitnexus-home:/data
+      - ${RUFAS_REPO_PATH:-C:/Workspace/RuFaS}:/src:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  # Interface web local do GitNexus (conecta ao mesmo índice).
+  gitnexus-web:
+    image: rufas/gitnexus:1.6.12
+    command: ["serve", "--host", "0.0.0.0", "--port", "4747"]
+    volumes:
+      - gitnexus-home:/data
+      - ${RUFAS_REPO_PATH:-C:/Workspace/RuFaS}:/src:ro
+    ports:
+      - "127.0.0.1:4747:4747"
+    restart: unless-stopped
+
+  # Memória de longo prazo para agentes (opcional). Imagem construída do repositório, tag v2.0.0.
+  ai-memory:
+    build:
+      context: https://github.com/akitaonrails/ai-memory.git#v2.0.0
+      dockerfile: docker/Dockerfile
+    image: rufas/ai-memory:2.0.0
+    profiles: ["memory"]
+    user: "1000:1000"
+    environment:
+      AI_MEMORY_AUTH_TOKEN: ${AI_MEMORY_AUTH_TOKEN:?defina AI_MEMORY_AUTH_TOKEN no .env}
+      RUST_LOG: ai_memory=info,ai_memory_store=info,ai_memory_wiki=info,ai_memory_mcp=info
+    volumes:
+      - ai-memory-data:/data
+    ports:
+      - "127.0.0.1:49374:49374"
+    restart: unless-stopped
+
+volumes:
+  gitnexus-home:
+    name: rufas-gitnexus-home
+  ai-memory-data:
+    name: ai-memory-data
